@@ -429,6 +429,10 @@ gateway_setting __setting ( SETTING_IP, gateway );
 extern const struct setting
 dns_setting __setting ( SETTING_IP_EXTRA, dns );
 extern const struct setting
+ip6_setting __setting ( SETTING_IP_EXTRA, ip6 );
+extern const struct setting
+dns6_setting __setting ( SETTING_IP_EXTRA, dns6 );
+extern const struct setting
 hostname_setting __setting ( SETTING_HOST, hostname );
 extern const struct setting
 domain_setting __setting ( SETTING_IP_EXTRA, domain );

@@ -146,7 +146,7 @@ static void del_ipv4_miniroute ( struct ipv4_miniroute *miniroute ) {
  * If the route requires use of a gateway, the next hop destination
  * address will be overwritten with the gateway address.
  */
-static struct ipv4_miniroute * ipv4_route ( struct in_addr *dest ) {
+struct ipv4_miniroute * ipv4_route ( struct in_addr *dest ) {
 	struct ipv4_miniroute *miniroute;
 	int local;
 	int has_gw;

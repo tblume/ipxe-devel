@@ -145,7 +145,7 @@ static int ipv6_is_on_link ( struct ipv6_miniroute *miniroute,
  * @v address		IPv6 address
  * @ret miniroute	Routing table entry, or NULL if not found
  */
-static struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
+struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
 						struct in6_addr *address ) {
 	struct ipv6_miniroute *miniroute;
 
@@ -275,8 +275,8 @@ int ipv6_set_address ( struct net_device *netdev, struct in6_addr *address ) {
  * @ret dest		Next hop destination address
  * @ret miniroute	Routing table entry to use, or NULL if no route
  */
-static struct ipv6_miniroute * ipv6_route ( unsigned int scope_id,
-					    struct in6_addr **dest ) {
+struct ipv6_miniroute * ipv6_route ( unsigned int scope_id,
+				     struct in6_addr **dest ) {
 	struct ipv6_miniroute *miniroute;
 
 	/* Find first usable route in routing table */
