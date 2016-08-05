@@ -1,0 +1,106 @@
+From 6ffcee97462fa08e85a86f6c48cfaa5b51b1401a Mon Sep 17 00:00:00 2001
+From: Thomas Blume <Thomas.Blume@suse.com>
+Date: Fri, 5 Aug 2016 08:57:47 +0200
+Subject: [PATCH] match latest upstream code
+
+[ipv]  fix redefinition of ip6_setting
+
+[ipv6] Rename ipv6_scope to ipv6_settings_scope
+
+addon for upstream commit: daa1a59310c0ae05773ac7f81417dfeebeb1455b
+---
+ src/include/ipxe/settings.h |  2 ++
+ src/net/ipv6.c              |  5 +++--
+ src/net/udp/dhcpv6.c        | 26 +++++++++++++++++++++++++-
+ 3 files changed, 30 insertions(+), 3 deletions(-)
+
+diff --git a/src/include/ipxe/settings.h b/src/include/ipxe/settings.h
+index 341fc3c..3cb4689 100644
+--- a/src/include/ipxe/settings.h
++++ b/src/include/ipxe/settings.h
+@@ -444,6 +444,8 @@ len6_setting __setting ( SETTING_IP6, len6 );
+ extern const struct setting
+ gateway6_setting __setting ( SETTING_IP6, gateway6 );
+ extern const struct setting
++dns6_setting __setting ( SETTING_IP_EXTRA, dns6 );
++extern const struct setting
+ hostname_setting __setting ( SETTING_HOST, hostname );
+ extern const struct setting
+ domain_setting __setting ( SETTING_IP_EXTRA, domain );
+diff --git a/src/net/ipv6.c b/src/net/ipv6.c
+index 4b2c33e..e96533d 100644
+--- a/src/net/ipv6.c
++++ b/src/net/ipv6.c
+@@ -189,8 +189,8 @@ static unsigned int ipv6_match_len ( struct ipv6_miniroute *miniroute,
+  * @v address		IPv6 address
+  * @ret miniroute	Routing table entry, or NULL if not found
+  */
+-static struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
+-						struct in6_addr *address ) {
++struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
++                                    struct in6_addr *address ) {
+ 	struct ipv6_miniroute *miniroute;
+ 	unsigned int match_len;
+ 
+@@ -1120,6 +1120,7 @@ int format_ipv6_setting ( const struct setting_type *type __unused,
+ const struct settings_scope ipv6_settings_scope;
+ 
+ /** IPv6 address setting */
++
+ const struct setting ip6_setting __setting ( SETTING_IP6, ip6 ) = {
+ 	.name = "ip6",
+ 	.description = "IPv6 address",
+diff --git a/src/net/udp/dhcpv6.c b/src/net/udp/dhcpv6.c
+index 253032e..3599c76 100644
+--- a/src/net/udp/dhcpv6.c
++++ b/src/net/udp/dhcpv6.c
+@@ -216,7 +216,7 @@ static int dhcpv6_iaaddr ( struct dhcpv6_option_list *options, uint32_t iaid,
+ 		return -EINVAL;
+ 
+ 	/* Check identity association ID */
+-	if ( ia_na->iaid != htonl ( iaid ) )
++        if ( iaid != (uint32)-1 && ia_na->iaid != htonl ( iaid ) )
+ 		return -EINVAL;
+ 
+ 	/* Construct IA_NA sub-options list */
+@@ -332,6 +332,19 @@ static int dhcpv6_fetch ( struct settings *settings,
+ 		return dhcpv6_fetch_lease ( dhcpv6set, data, len );
+ 
+ 	/* Find option */
++        if (setting->tag == DHCPV6_IAADDR) {
++                struct in6_addr ip6_addr;
++                int rc;
++
++                rc = dhcpv6_iaaddr( &dhcpv6set->options, -1, &ip6_addr );
++                if ( rc != 0 )
++                        return rc;
++                option_len = sizeof (struct in6_addr);
++                if (len > option_len)
++                        len = option_len;
++                memcpy( data, (char *)&ip6_addr, len );
++                return option_len;
++        }
+ 	option = dhcpv6_option ( &dhcpv6set->options, setting->tag );
+ 	if ( ! option )
+ 		return -ENOENT;
+@@ -998,6 +1011,17 @@ int start_dhcpv6 ( struct interface *job, struct net_device *netdev,
+ 	return rc;
+ }
+ 
++/** IPv6 address setting */
++/*
++const struct setting ip6_setting __setting ( SETTING_IP_EXTRA, ip6 ) = {
++        .name = "ip6",
++        .description = "IPv6 address",
++        .tag = DHCPV6_IAADDR,
++        .type = &setting_type_ipv6,
++        .scope = &ipv6_settings_scope,
++};
++*/
++
+ /** Boot filename setting */
+ const struct setting filename6_setting __setting ( SETTING_BOOT, filename ) = {
+ 	.name = "filename",
+-- 
+2.6.6
+
