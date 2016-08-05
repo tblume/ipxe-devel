@@ -1960,7 +1960,7 @@ static int int13_describe ( unsigned int drive ) {
 		return rc;
 
 	/* Clear table */
-	memset ( &xbftab, 0, sizeof ( xbftab ) );
+//	memset ( &xbftab, 0, sizeof ( xbftab ) );
 
 	/* Fill in common parameters */
 	strncpy ( xbftab.acpi.oem_id, "FENSYS",
