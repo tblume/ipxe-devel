@@ -189,8 +189,8 @@ static unsigned int ipv6_match_len ( struct ipv6_miniroute *miniroute,
  * @v address		IPv6 address
  * @ret miniroute	Routing table entry, or NULL if not found
  */
-static struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
-						struct in6_addr *address ) {
+struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
+                                    struct in6_addr *address ) {
 	struct ipv6_miniroute *miniroute;
 	unsigned int match_len;
 
@@ -1120,6 +1120,7 @@ int format_ipv6_setting ( const struct setting_type *type __unused,
 const struct settings_scope ipv6_settings_scope;
 
 /** IPv6 address setting */
+
 const struct setting ip6_setting __setting ( SETTING_IP6, ip6 ) = {
 	.name = "ip6",
 	.description = "IPv6 address",

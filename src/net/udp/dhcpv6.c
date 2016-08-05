@@ -216,7 +216,7 @@ static int dhcpv6_iaaddr ( struct dhcpv6_option_list *options, uint32_t iaid,
 		return -EINVAL;
 
 	/* Check identity association ID */
-	if ( ia_na->iaid != htonl ( iaid ) )
+        if ( iaid != (uint32)-1 && ia_na->iaid != htonl ( iaid ) )
 		return -EINVAL;
 
 	/* Construct IA_NA sub-options list */
@@ -332,6 +332,19 @@ static int dhcpv6_fetch ( struct settings *settings,
 		return dhcpv6_fetch_lease ( dhcpv6set, data, len );
 
 	/* Find option */
+        if (setting->tag == DHCPV6_IAADDR) {
+                struct in6_addr ip6_addr;
+                int rc;
+
+                rc = dhcpv6_iaaddr( &dhcpv6set->options, -1, &ip6_addr );
+                if ( rc != 0 )
+                        return rc;
+                option_len = sizeof (struct in6_addr);
+                if (len > option_len)
+                        len = option_len;
+                memcpy( data, (char *)&ip6_addr, len );
+                return option_len;
+        }
 	option = dhcpv6_option ( &dhcpv6set->options, setting->tag );
 	if ( ! option )
 		return -ENOENT;
@@ -997,6 +1010,17 @@ int start_dhcpv6 ( struct interface *job, struct net_device *netdev,
 	ref_put ( &dhcpv6->refcnt );
 	return rc;
 }
+
+/** IPv6 address setting */
+/*
+const struct setting ip6_setting __setting ( SETTING_IP_EXTRA, ip6 ) = {
+        .name = "ip6",
+        .description = "IPv6 address",
+        .tag = DHCPV6_IAADDR,
+        .type = &setting_type_ipv6,
+        .scope = &ipv6_settings_scope,
+};
+*/
 
 /** Boot filename setting */
 const struct setting filename6_setting __setting ( SETTING_BOOT, filename ) = {
