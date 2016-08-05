@@ -26,7 +26,7 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
  * initialisation vector, thus rendering the banner almost invisible
  * to the user.
  */
-#define BANNER_TIMEOUT		20
+#define BANNER_TIMEOUT		30
 #define ROM_BANNER_TIMEOUT	( 2 * BANNER_TIMEOUT )
 
 /*
@@ -35,8 +35,8 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
  */
 
 #define	NET_PROTO_IPV4		/* IPv4 protocol */
-#undef	NET_PROTO_IPV6		/* IPv6 protocol */
-#undef	NET_PROTO_FCOE		/* Fibre Channel over Ethernet protocol */
+#define	NET_PROTO_IPV6		/* IPv6 protocol */
+#define	NET_PROTO_FCOE		/* Fibre Channel over Ethernet protocol */
 #define	NET_PROTO_STP		/* Spanning Tree protocol */
 #define	NET_PROTO_LACP		/* Link Aggregation control protocol */
 
@@ -55,7 +55,7 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 #define	DOWNLOAD_PROTO_TFTP	/* Trivial File Transfer Protocol */
 #define	DOWNLOAD_PROTO_HTTP	/* Hypertext Transfer Protocol */
 #undef	DOWNLOAD_PROTO_HTTPS	/* Secure Hypertext Transfer Protocol */
-#undef	DOWNLOAD_PROTO_FTP	/* File Transfer Protocol */
+#define	DOWNLOAD_PROTO_FTP	/* File Transfer Protocol */
 #undef	DOWNLOAD_PROTO_SLAM	/* Scalable Local Area Multicast */
 #undef	DOWNLOAD_PROTO_NFS	/* Network File System Protocol */
 //#undef DOWNLOAD_PROTO_FILE	/* Local filesystem access */
@@ -137,16 +137,16 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 //#define TIME_CMD		/* Time commands */
 //#define DIGEST_CMD		/* Image crypto digest commands */
 //#define LOTEST_CMD		/* Loopback testing commands */
-//#define VLAN_CMD		/* VLAN commands */
-//#define PXE_CMD		/* PXE commands */
-//#define REBOOT_CMD		/* Reboot command */
+#define VLAN_CMD		/* VLAN commands */
+//#define PXE_CMD			/* PXE commands */
+#define REBOOT_CMD		/* Reboot command */
 //#define POWEROFF_CMD		/* Power off command */
 //#define IMAGE_TRUST_CMD	/* Image trust management commands */
 //#define PCI_CMD		/* PCI commands */
 //#define PARAM_CMD		/* Form parameter commands */
 //#define NEIGHBOUR_CMD		/* Neighbour management commands */
-//#define PING_CMD		/* Ping command */
-//#define CONSOLE_CMD		/* Console command */
+#define PING_CMD		/* Ping command */
+#define CONSOLE_CMD		/* Console command */
 //#define IPSTAT_CMD		/* IP statistics commands */
 //#define PROFSTAT_CMD		/* Profiling commands */
 //#define NTP_CMD		/* NTP commands */
