@@ -35,8 +35,8 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
  */
 
 #define	NET_PROTO_IPV4		/* IPv4 protocol */
-#undef	NET_PROTO_IPV6		/* IPv6 protocol */
-#undef	NET_PROTO_FCOE		/* Fibre Channel over Ethernet protocol */
+#define	NET_PROTO_IPV6		/* IPv6 protocol */
+#define	NET_PROTO_FCOE		/* Fibre Channel over Ethernet protocol */
 #define	NET_PROTO_STP		/* Spanning Tree protocol */
 
 /*
@@ -123,9 +123,9 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 //#define TIME_CMD		/* Time commands */
 //#define DIGEST_CMD		/* Image crypto digest commands */
 //#define LOTEST_CMD		/* Loopback testing commands */
-//#define VLAN_CMD		/* VLAN commands */
+#define VLAN_CMD		/* VLAN commands */
 //#define PXE_CMD		/* PXE commands */
-//#define REBOOT_CMD		/* Reboot command */
+#define REBOOT_CMD		/* Reboot command */
 //#define POWEROFF_CMD		/* Power off command */
 //#define IMAGE_TRUST_CMD	/* Image trust management commands */
 //#define PCI_CMD		/* PCI commands */
