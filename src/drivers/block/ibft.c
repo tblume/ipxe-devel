@@ -312,9 +312,8 @@ static struct net_device * ibft_fill_nic_ipv4 ( struct ibft_nic *nic,
 	ibft_set_ipaddr_setting ( NULL, &nic->dns[0], &dns_setting,
 				  ( sizeof ( nic->dns ) /
 				    sizeof ( nic->dns[0] ) ) );
-	DBG ( "iBFT NIC[%d] DNS = %s", nic->header.index,
-	      ibft_ipaddr ( &nic->dns[0] ) );
-
+	ibft_set_ipaddr_setting ( parent, &nic->dhcp, &dhcp_server_setting, 1 );
+	DBG ( "iBFT NIC DNS = %s", ibft_ipaddr ( &nic->dns[0] ) );
 	DBG ( ", %s\n", ibft_ipaddr ( &nic->dns[1] ) );
 
 	/* Derive subnet mask prefix from subnet mask */

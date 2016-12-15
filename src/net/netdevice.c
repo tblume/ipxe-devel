@@ -39,6 +39,7 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 #include <ipxe/device.h>
 #include <ipxe/errortab.h>
 #include <ipxe/profile.h>
+#include <ipxe/fault.h>
 #include <ipxe/vlan.h>
 #include <ipxe/netdevice.h>
 
@@ -303,11 +304,8 @@ int netdev_tx ( struct net_device *netdev, struct io_buffer *iobuf ) {
 	}
 
 	/* Discard packet (for test purposes) if applicable */
-	if ( ( NETDEV_DISCARD_RATE > 0 ) &&
-	     ( ( random() % NETDEV_DISCARD_RATE ) == 0 ) ) {
-		rc = -EAGAIN;
+	if ( ( rc = inject_fault ( NETDEV_DISCARD_RATE ) ) != 0 )
 		goto err;
-	}
 
 	/* Transmit packet */
 	if ( ( rc = netdev->op->transmit ( netdev, iobuf ) ) != 0 )
@@ -457,14 +455,14 @@ static void netdev_tx_flush ( struct net_device *netdev ) {
  * function takes ownership of the I/O buffer.
  */
 void netdev_rx ( struct net_device *netdev, struct io_buffer *iobuf ) {
+	int rc;
 
 	DBGC2 ( netdev, "NETDEV %s received %p (%p+%zx)\n",
 		netdev->name, iobuf, iobuf->data, iob_len ( iobuf ) );
 
 	/* Discard packet (for test purposes) if applicable */
-	if ( ( NETDEV_DISCARD_RATE > 0 ) &&
-	     ( ( random() % NETDEV_DISCARD_RATE ) == 0 ) ) {
-		netdev_rx_err ( netdev, iobuf, -EAGAIN );
+	if ( ( rc = inject_fault ( NETDEV_DISCARD_RATE ) ) != 0 ) {
+		netdev_rx_err ( netdev, iobuf, rc );
 		return;
 	}
 
@@ -677,12 +675,20 @@ int register_netdev ( struct net_device *netdev ) {
 		goto err_duplicate;
 	}
 
+	/* Reject named network devices that already exist */
+	if ( netdev->name[0] && ( duplicate = find_netdev ( netdev->name ) ) ) {
+		DBGC ( netdev, "NETDEV rejecting duplicate name %s\n",
+		       duplicate->name );
+		rc = -EEXIST;
+		goto err_duplicate;
+	}
+
 	/* Record device index and create device name */
-	netdev->index = netdev_index++;
 	if ( netdev->name[0] == '\0' ) {
 		snprintf ( netdev->name, sizeof ( netdev->name ), "net%d",
-			   netdev->index );
+			   netdev_index );
 	}
+	netdev->index = ++netdev_index;
 
 	/* Use least significant bits of the link-layer address to
 	 * improve the randomness of the (non-cryptographic) random
@@ -727,6 +733,8 @@ int register_netdev ( struct net_device *netdev ) {
 	clear_settings ( netdev_settings ( netdev ) );
 	unregister_settings ( netdev_settings ( netdev ) );
  err_register_settings:
+	list_del ( &netdev->list );
+	netdev_put ( netdev );
  err_duplicate:
 	return rc;
 }

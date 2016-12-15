@@ -41,6 +41,7 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 #include <ipxe/crc32.h>
 #include <ipxe/ocsp.h>
 #include <ipxe/validator.h>
+#include <config/crypto.h>
 
 /** @file
  *
@@ -83,7 +84,7 @@ static void validator_free ( struct refcnt *refcnt ) {
 	DBGC2 ( validator, "VALIDATOR %p freed\n", validator );
 	x509_chain_put ( validator->chain );
 	ocsp_put ( validator->ocsp );
-	xferbuf_done ( &validator->buffer );
+	xferbuf_free ( &validator->buffer );
 	free ( validator );
 }
 
@@ -133,7 +134,7 @@ const struct setting crosscert_setting __setting ( SETTING_CRYPTO, crosscert )={
 };
 
 /** Default cross-signed certificate source */
-static const char crosscert_default[] = "http://ca.ipxe.org/auto";
+static const char crosscert_default[] = CROSSCERT;
 
 /**
  * Append cross-signing certificates to certificate chain
@@ -392,7 +393,7 @@ static void validator_xfer_close ( struct validator *validator, int rc ) {
 		goto err_append;
 
 	/* Free downloaded data */
-	xferbuf_done ( &validator->buffer );
+	xferbuf_free ( &validator->buffer );
 
 	/* Resume validation process */
 	process_add ( &validator->process );
@@ -477,7 +478,7 @@ static void validator_step ( struct validator *validator ) {
 		issuer = link->cert;
 		if ( ! cert )
 			continue;
-		if ( ! issuer->valid )
+		if ( ! x509_is_valid ( issuer ) )
 			continue;
 		/* The issuer is valid, but this certificate is not
 		 * yet valid.  If OCSP is applicable, start it.
@@ -557,6 +558,7 @@ int create_validator ( struct interface *job, struct x509_chain *chain ) {
 	process_init ( &validator->process, &validator_process_desc,
 		       &validator->refcnt );
 	validator->chain = x509_chain_get ( chain );
+	xferbuf_malloc_init ( &validator->buffer );
 
 	/* Attach parent interface, mortalise self, and return */
 	intf_plug_plug ( &validator->job, job );

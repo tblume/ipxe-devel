@@ -82,9 +82,11 @@ static uint8_t dhcp_request_options_data[] = {
 	DHCP_MESSAGE_TYPE, DHCP_BYTE ( 0 ),
 	DHCP_MAX_MESSAGE_SIZE,
 	DHCP_WORD ( ETH_MAX_MTU - 20 /* IP header */ - 8 /* UDP header */ ),
-	DHCP_CLIENT_ARCHITECTURE, DHCP_ARCH_CLIENT_ARCHITECTURE,
-	DHCP_CLIENT_NDI, DHCP_ARCH_CLIENT_NDI,
-	DHCP_VENDOR_CLASS_ID, DHCP_ARCH_VENDOR_CLASS_ID,
+	DHCP_CLIENT_ARCHITECTURE, DHCP_WORD ( DHCP_ARCH_CLIENT_ARCHITECTURE ),
+	DHCP_CLIENT_NDI, DHCP_OPTION ( DHCP_ARCH_CLIENT_NDI ),
+	DHCP_VENDOR_CLASS_ID,
+	DHCP_STRING ( DHCP_VENDOR_PXECLIENT ( DHCP_ARCH_CLIENT_ARCHITECTURE,
+					      DHCP_ARCH_CLIENT_NDI ) ),
 	DHCP_USER_CLASS_ID, DHCP_STRING ( 'i', 'P', 'X', 'E' ),
 	DHCP_PARAMETER_REQUEST_LIST,
 	DHCP_OPTION ( DHCP_SUBNET_MASK, DHCP_ROUTERS, DHCP_DNS_SERVERS,
@@ -154,22 +156,23 @@ struct dhcp_session_state {
 	 * @v dhcppkt		DHCP packet
 	 * @v peer		Destination address
 	 */
-	int ( * tx ) ( struct dhcp_session *dhcp,
-		       struct dhcp_packet *dhcppkt,
+	int ( * tx ) ( struct dhcp_session *dhcp, struct dhcp_packet *dhcppkt,
 		       struct sockaddr_in *peer );
-	/** Handle received packet
+	/**
+	 * Handle received packet
 	 *
 	 * @v dhcp		DHCP session
 	 * @v dhcppkt		DHCP packet
 	 * @v peer		DHCP server address
 	 * @v msgtype		DHCP message type
 	 * @v server_id		DHCP server ID
+	 * @v pseudo_id		DHCP server pseudo-ID
 	 */
-	void ( * rx ) ( struct dhcp_session *dhcp,
-			struct dhcp_packet *dhcppkt,
-			struct sockaddr_in *peer,
-			uint8_t msgtype, struct in_addr server_id );
-	/** Handle timer expiry
+	void ( * rx ) ( struct dhcp_session *dhcp, struct dhcp_packet *dhcppkt,
+			struct sockaddr_in *peer, uint8_t msgtype,
+			struct in_addr server_id, struct in_addr pseudo_id );
+	/**
+	 * Handle timer expiry
 	 *
 	 * @v dhcp		DHCP session
 	 */
@@ -295,8 +298,9 @@ static void dhcp_set_state ( struct dhcp_session *dhcp,
  */
 static int dhcp_has_pxeopts ( struct dhcp_packet *dhcppkt ) {
 
-	/* Check for a boot filename */
-	if ( dhcppkt_fetch ( dhcppkt, DHCP_BOOTFILE_NAME, NULL, 0 ) > 0 )
+	/* Check for a next-server and boot filename */
+	if ( dhcppkt->dhcphdr->siaddr.s_addr &&
+	     ( dhcppkt_fetch ( dhcppkt, DHCP_BOOTFILE_NAME, NULL, 0 ) > 0 ) )
 		return 1;
 
 	/* Check for a PXE boot menu */
@@ -340,11 +344,13 @@ static int dhcp_discovery_tx ( struct dhcp_session *dhcp,
  * @v peer		DHCP server address
  * @v msgtype		DHCP message type
  * @v server_id		DHCP server ID
+ * @v pseudo_id		DHCP server pseudo-ID
  */
 static void dhcp_discovery_rx ( struct dhcp_session *dhcp,
 				struct dhcp_packet *dhcppkt,
 				struct sockaddr_in *peer, uint8_t msgtype,
-				struct in_addr server_id ) {
+				struct in_addr server_id,
+				struct in_addr pseudo_id ) {
 	struct in_addr ip;
 	char vci[9]; /* "PXEClient" */
 	int vci_len;
@@ -356,8 +362,11 @@ static void dhcp_discovery_rx ( struct dhcp_session *dhcp,
 	DBGC ( dhcp, "DHCP %p %s from %s:%d", dhcp,
 	       dhcp_msgtype_name ( msgtype ), inet_ntoa ( peer->sin_addr ),
 	       ntohs ( peer->sin_port ) );
-	if ( server_id.s_addr != peer->sin_addr.s_addr )
-		DBGC ( dhcp, " (%s)", inet_ntoa ( server_id ) );
+	if ( ( server_id.s_addr != peer->sin_addr.s_addr ) ||
+	     ( pseudo_id.s_addr != peer->sin_addr.s_addr ) ) {
+		DBGC ( dhcp, " (%s/", inet_ntoa ( server_id ) );
+		DBGC ( dhcp, "%s)", inet_ntoa ( pseudo_id ) );
+	}
 
 	/* Identify offered IP address */
 	ip = dhcppkt->dhcphdr->yiaddr;
@@ -398,10 +407,10 @@ static void dhcp_discovery_rx ( struct dhcp_session *dhcp,
 	}
 
 	/* Select as ProxyDHCP offer, if applicable */
-	if ( server_id.s_addr && has_pxeclient &&
+	if ( pseudo_id.s_addr && has_pxeclient &&
 	     ( priority >= dhcp->proxy_priority ) ) {
 		dhcppkt_put ( dhcp->proxy_offer );
-		dhcp->proxy_server = server_id;
+		dhcp->proxy_server = pseudo_id;
 		dhcp->proxy_offer = dhcppkt_get ( dhcppkt );
 		dhcp->proxy_priority = priority;
 	}
@@ -437,8 +446,10 @@ static void dhcp_discovery_expired ( struct dhcp_session *dhcp ) {
 	unsigned long elapsed = ( currticks() - dhcp->start );
 
 	/* If link is blocked, defer DHCP discovery (and reset timeout) */
-	if ( netdev_link_blocked ( dhcp->netdev ) ) {
+	if ( netdev_link_blocked ( dhcp->netdev ) &&
+	     ( dhcp->count <= DHCP_DISC_MAX_DEFERRALS ) ) {
 		DBGC ( dhcp, "DHCP %p deferring discovery\n", dhcp );
+		dhcp->start = currticks();
 		start_timer_fixed ( &dhcp->timer,
 				    ( DHCP_DISC_START_TIMEOUT_SEC *
 				      TICKS_PER_SEC ) );
@@ -510,11 +521,13 @@ static int dhcp_request_tx ( struct dhcp_session *dhcp,
  * @v peer		DHCP server address
  * @v msgtype		DHCP message type
  * @v server_id		DHCP server ID
+ * @v pseudo_id		DHCP server pseudo-ID
  */
 static void dhcp_request_rx ( struct dhcp_session *dhcp,
 			      struct dhcp_packet *dhcppkt,
 			      struct sockaddr_in *peer, uint8_t msgtype,
-			      struct in_addr server_id ) {
+			      struct in_addr server_id,
+			      struct in_addr pseudo_id ) {
 	struct in_addr ip;
 	struct settings *parent;
 	struct settings *settings;
@@ -523,8 +536,11 @@ static void dhcp_request_rx ( struct dhcp_session *dhcp,
 	DBGC ( dhcp, "DHCP %p %s from %s:%d", dhcp,
 	       dhcp_msgtype_name ( msgtype ), inet_ntoa ( peer->sin_addr ),
 	       ntohs ( peer->sin_port ) );
-	if ( server_id.s_addr != peer->sin_addr.s_addr )
-		DBGC ( dhcp, " (%s)", inet_ntoa ( server_id ) );
+	if ( ( server_id.s_addr != peer->sin_addr.s_addr ) ||
+	     ( pseudo_id.s_addr != peer->sin_addr.s_addr ) ) {
+		DBGC ( dhcp, " (%s/", inet_ntoa ( server_id ) );
+		DBGC ( dhcp, "%s)", inet_ntoa ( pseudo_id ) );
+	}
 
 	/* Identify leased IP address */
 	ip = dhcppkt->dhcphdr->yiaddr;
@@ -641,19 +657,26 @@ static int dhcp_proxy_tx ( struct dhcp_session *dhcp,
  * @v peer		DHCP server address
  * @v msgtype		DHCP message type
  * @v server_id		DHCP server ID
+ * @v pseudo_id		DHCP server pseudo-ID
  */
 static void dhcp_proxy_rx ( struct dhcp_session *dhcp,
 			    struct dhcp_packet *dhcppkt,
 			    struct sockaddr_in *peer, uint8_t msgtype,
-			    struct in_addr server_id ) {
+			    struct in_addr server_id,
+			    struct in_addr pseudo_id ) {
 	struct settings *settings = &dhcppkt->settings;
 	int rc;
 
 	DBGC ( dhcp, "DHCP %p %s from %s:%d", dhcp,
 	       dhcp_msgtype_name ( msgtype ), inet_ntoa ( peer->sin_addr ),
 	       ntohs ( peer->sin_port ) );
-	if ( server_id.s_addr != peer->sin_addr.s_addr )
-		DBGC ( dhcp, " (%s)", inet_ntoa ( server_id ) );
+	if ( ( server_id.s_addr != peer->sin_addr.s_addr ) ||
+	     ( pseudo_id.s_addr != peer->sin_addr.s_addr ) ) {
+		DBGC ( dhcp, " (%s/", inet_ntoa ( server_id ) );
+		DBGC ( dhcp, "%s)", inet_ntoa ( pseudo_id ) );
+	}
+	if ( dhcp_has_pxeopts ( dhcppkt ) )
+		DBGC ( dhcp, " pxe" );
 	DBGC ( dhcp, "\n" );
 
 	/* Filter out unacceptable responses */
@@ -661,8 +684,9 @@ static void dhcp_proxy_rx ( struct dhcp_session *dhcp,
 		return;
 	if ( ( msgtype != DHCPOFFER ) && ( msgtype != DHCPACK ) )
 		return;
-	if ( server_id.s_addr /* Linux PXE server omits server ID */ &&
-	     ( server_id.s_addr != dhcp->proxy_server.s_addr ) )
+	if ( ( pseudo_id.s_addr != dhcp->proxy_server.s_addr ) )
+		return;
+	if ( ! dhcp_has_pxeopts ( dhcppkt ) )
 		return;
 
 	/* Register settings */
@@ -772,19 +796,24 @@ static int dhcp_pxebs_accept ( struct dhcp_session *dhcp,
  * @v peer		DHCP server address
  * @v msgtype		DHCP message type
  * @v server_id		DHCP server ID
+ * @v pseudo_id		DHCP server pseudo-ID
  */
 static void dhcp_pxebs_rx ( struct dhcp_session *dhcp,
 			    struct dhcp_packet *dhcppkt,
 			    struct sockaddr_in *peer, uint8_t msgtype,
-			    struct in_addr server_id ) {
+			    struct in_addr server_id,
+			    struct in_addr pseudo_id ) {
 	struct dhcp_pxe_boot_menu_item menu_item = { 0, 0 };
 	int rc;
 
 	DBGC ( dhcp, "DHCP %p %s from %s:%d", dhcp,
 	       dhcp_msgtype_name ( msgtype ), inet_ntoa ( peer->sin_addr ),
 	       ntohs ( peer->sin_port ) );
-	if ( server_id.s_addr != peer->sin_addr.s_addr )
-		DBGC ( dhcp, " (%s)", inet_ntoa ( server_id ) );
+	if ( ( server_id.s_addr != peer->sin_addr.s_addr ) ||
+	     ( pseudo_id.s_addr != peer->sin_addr.s_addr ) ) {
+		DBGC ( dhcp, " (%s/", inet_ntoa ( server_id ) );
+		DBGC ( dhcp, "%s)", inet_ntoa ( pseudo_id ) );
+	}
 
 	/* Identify boot menu item */
 	dhcppkt_fetch ( dhcppkt, DHCP_PXE_BOOT_MENU_ITEM,
@@ -801,8 +830,7 @@ static void dhcp_pxebs_rx ( struct dhcp_session *dhcp,
 		return;
 	if ( menu_item.type != dhcp->pxe_type )
 		return;
-	if ( ! dhcp_pxebs_accept ( dhcp, ( server_id.s_addr ?
-					   server_id : peer->sin_addr ) ) )
+	if ( ! dhcp_pxebs_accept ( dhcp, pseudo_id ) )
 		return;
 
 	/* Register settings */
@@ -1090,7 +1118,7 @@ static int dhcp_tx ( struct dhcp_session *dhcp ) {
 	 * session state into packet traces.  Useful for extracting
 	 * debug information from non-debug builds.
 	 */
-	dhcppkt.dhcphdr->secs = htons ( ( ++(dhcp->count) << 2 ) |
+	dhcppkt.dhcphdr->secs = htons ( ( dhcp->count << 2 ) |
 					( dhcp->offer.s_addr ? 0x02 : 0 ) |
 					( dhcp->proxy_offer ? 0x01 : 0 ) );
 
@@ -1134,6 +1162,7 @@ static int dhcp_deliver ( struct dhcp_session *dhcp,
 	struct dhcphdr *dhcphdr;
 	uint8_t msgtype = 0;
 	struct in_addr server_id = { 0 };
+	struct in_addr pseudo_id;
 	int rc = 0;
 
 	/* Sanity checks */
@@ -1168,6 +1197,13 @@ static int dhcp_deliver ( struct dhcp_session *dhcp,
 	dhcppkt_fetch ( dhcppkt, DHCP_SERVER_IDENTIFIER,
 			&server_id, sizeof ( server_id ) );
 
+	/* Identify server pseudo-ID */
+	pseudo_id = server_id;
+	if ( ! pseudo_id.s_addr )
+		pseudo_id = dhcppkt->dhcphdr->siaddr;
+	if ( ! pseudo_id.s_addr )
+		pseudo_id = peer->sin_addr;
+
 	/* Check for matching transaction ID */
 	if ( dhcphdr->xid != dhcp->xid ) {
 		DBGC ( dhcp, "DHCP %p %s from %s:%d has bad transaction "
@@ -1190,7 +1226,7 @@ static int dhcp_deliver ( struct dhcp_session *dhcp,
 	}
 
 	/* Handle packet based on current state */
-	dhcp->state->rx ( dhcp, dhcppkt, peer, msgtype, server_id );
+	dhcp->state->rx ( dhcp, dhcppkt, peer, msgtype, server_id, pseudo_id );
 
  err_chaddr:
  err_xid:
@@ -1225,6 +1261,9 @@ static void dhcp_timer_expired ( struct retry_timer *timer, int fail ) {
 		dhcp_finished ( dhcp, -ETIMEDOUT );
 		return;
 	}
+
+	/* Increment transmission counter */
+	dhcp->count++;
 
 	/* Handle timer expiry based on current state */
 	dhcp->state->expired ( dhcp );

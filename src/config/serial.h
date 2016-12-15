@@ -21,7 +21,7 @@ FILE_LICENCE ( GPL2_OR_LATER );
 #undef	COMPRESERVE
 
 #ifndef COMPRESERVE
-#define	COMSPEED	115200		/* Baud rate */
+#define	COMSPEED	9600		/* Baud rate */
 #define	COMDATA		8		/* Data bits */
 #define	COMPARITY	0		/* Parity: 0=None, 1=Odd, 2=Even */
 #define	COMSTOP		1		/* Stop bits */

@@ -231,6 +231,7 @@ static void iscsi_close ( struct iscsi_session *iscsi, int rc ) {
 	process_del ( &iscsi->process );
 
 	/* Shut down interfaces */
+	intf_nullify ( &iscsi->data ); /* avoid potential loops */
 	intf_shutdown ( &iscsi->socket, rc );
 	intf_shutdown ( &iscsi->control, rc );
 	intf_shutdown ( &iscsi->data, rc );
@@ -1439,8 +1440,10 @@ static void iscsi_tx_done ( struct iscsi_session *iscsi ) {
 	switch ( common->opcode & ISCSI_OPCODE_MASK ) {
 	case ISCSI_OPCODE_DATA_OUT:
 		iscsi_data_out_done ( iscsi );
+		break;
 	case ISCSI_OPCODE_LOGIN_REQUEST:
 		iscsi_login_request_done ( iscsi );
+		break;
 	default:
 		/* No action */
 		break;
@@ -1708,6 +1711,7 @@ static int iscsi_vredirect ( struct iscsi_session *iscsi, int type,
 			     va_list args ) {
 	va_list tmp;
 	struct sockaddr *peer;
+	int rc;
 
 	/* Intercept redirects to a LOCATION_SOCKET and record the IP
 	 * address for the iBFT.  This is a bit of a hack, but avoids
@@ -1723,7 +1727,15 @@ static int iscsi_vredirect ( struct iscsi_session *iscsi, int type,
 		va_end ( tmp );
 	}
 
-	return xfer_vreopen ( &iscsi->socket, type, args );
+	/* Redirect to new location */
+	if ( ( rc = xfer_vreopen ( &iscsi->socket, type, args ) ) != 0 )
+		goto err;
+
+	return 0;
+
+ err:
+	iscsi_close ( iscsi, rc );
+	return rc;
 }
 
 /** iSCSI socket interface operations */

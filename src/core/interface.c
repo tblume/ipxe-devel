@@ -295,7 +295,6 @@ void intf_shutdown ( struct interface *intf, int rc ) {
  * blocked during shutdown.
  */
 void intf_restart ( struct interface *intf, int rc ) {
-	struct interface_descriptor *desc = intf->desc;
 
 	/* Shut down the interface */
 	intf_shutdown ( intf, rc );
@@ -309,5 +308,30 @@ void intf_restart ( struct interface *intf, int rc ) {
 	 * infinite loop as the intf_close() operations on each side
 	 * of the link call each other recursively.
 	 */
-	intf->desc = desc;
+	intf_reinit ( intf );
+}
+
+/**
+ * Poke an object interface
+ *
+ * @v intf		Object interface
+ * @v type		Operation type
+ *
+ * This is a helper function to implement methods which take no
+ * parameters and return nothing.
+ */
+void intf_poke ( struct interface *intf,
+		 void ( type ) ( struct interface *intf ) ) {
+	struct interface *dest;
+	intf_poke_TYPE ( void * ) *op =
+		intf_get_dest_op_untyped ( intf, type, &dest );
+	void *object = intf_object ( dest );
+
+	if ( op ) {
+		op ( object );
+	} else {
+		/* Default is to do nothing */
+	}
+
+	intf_put ( dest );
 }
