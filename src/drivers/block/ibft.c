@@ -276,22 +276,18 @@ static const char * ibft_string ( struct ibft_strings *strings,
  * Fill in IPv4 specific parts of the NIC portion of iBFT
  *
  * @v nic		NIC portion of iBFT
- * @v strings		iBFT string block descriptor
- * @v netdev		Network device
- * @ret rc		Return status code
  * @v dest             IPv4 target address
  * @ret netdev         Return network device
  */
 
 static struct net_device * ibft_fill_nic_ipv4 ( struct ibft_nic *nic,
-                                                struct ipv4_miniroute *route4 ) {
+                                               struct sockaddr_in *dest ) {
+
+        struct ipv4_miniroute *route4 = ipv4_route(&dest->sin_addr);
         struct settings *parent;
         struct settings *origin;
 	struct in_addr netmask_addr = { 0 };
 	unsigned int netmask_count = 0;
-	struct settings *parent = netdev_settings ( netdev );
-	struct settings *origin;
-	int rc;
 
 	/* Fill in common header */
 	nic->header.structure_id = IBFT_STRUCTURE_ID_NIC;
@@ -324,11 +320,6 @@ static struct net_device * ibft_fill_nic_ipv4 ( struct ibft_nic *nic,
         DBG ( "iBFT NIC[%d] DNS = %s", nic->header.index,
               ibft_ipaddr ( &nic->dns[0] ) );
 	DBG ( ", %s\n", ibft_ipaddr ( &nic->dns[1] ) );
-	if ( ( rc = ibft_set_string_setting ( NULL, strings, &nic->hostname,
-					      &hostname_setting ) ) != 0 )
-		return rc;
-	DBG ( "iBFT NIC hostname = %s\n",
-	      ibft_string ( strings, &nic->hostname ) );
 
 	/* Derive subnet mask prefix from subnet mask */
         netmask_addr = route4->netmask;
@@ -346,41 +337,38 @@ static struct net_device * ibft_fill_nic_ipv4 ( struct ibft_nic *nic,
 /**
  * Fill in IPv6 specific parts of the NIC portion of iBFT
  *
- * @v nic		NIC portion of iBFT
- * @v dest		IPv6 destination address
- * @ret rc		Return network device
+ * @v nic              NIC portion of iBFT
+ * @v dest             IPv6 destination address
+ * @ret rc             Return network device
  */
 static struct net_device * ibft_fill_nic_ipv6 ( struct ibft_nic *nic,
-						struct ipv6_miniroute *route6,
-						struct in6_addr * router ) {
-	struct settings *parent;
-	struct settings *origin;
+                                               struct sockaddr_in6 * dest ) {
+       struct ipv6_miniroute *route6;
+       struct in6_addr *router = &dest->sin6_addr;
+       struct settings *parent;
+       struct settings *origin;
 
-	parent = netdev_settings(route6->netdev);
-	fetch_setting ( parent, &ip6_setting, &origin, NULL, NULL, 0 );
-	nic->origin = ( ( origin == parent ) ?
-			IBFT_NIC_ORIGIN_MANUAL : IBFT_NIC_ORIGIN_DHCP );
-	DBG ( "iBFT NIC[%d] origin = %d\n",
-	      nic->header.index, nic->origin );
+       route6 = ipv6_route(dest->sin6_scope_id, &router);
+       parent = netdev_settings(route6->netdev);
+       fetch_setting ( parent, &ip6_setting, &origin, NULL, NULL, 0 );
+       nic->origin = ( ( origin == parent ) ?
+                       IBFT_NIC_ORIGIN_MANUAL : IBFT_NIC_ORIGIN_DHCP );
+       DBG ( "iBFT NIC origin = %d\n", nic->origin );
 
-	/* Extract values from configuration settings */
-	ibft_set_ip6addr ( &nic->ip_address, route6->address );
-	DBG ( "iBFT NIC[%d] IP = %s\n",
-	      nic->header.index, ibft_ipaddr ( &nic->ip_address ) );
-	ibft_set_ip6addr ( &nic->gateway, *router );
-	DBG ( "iBFT NIC[%d] gateway = %s\n",
-	      nic->header.index, ibft_ipaddr ( &nic->gateway ) );
-	ibft_set_ip6addr_setting ( NULL, &nic->dns[0], &dns6_setting,
-				   ( sizeof ( nic->dns ) /
-				     sizeof ( nic->dns[0] ) ) );
-	DBG ( "iBFT NIC[%d] DNS = %s", nic->header.index,
-	      ibft_ipaddr ( &nic->dns[0] ) );
-	DBG ( ", %s\n", ibft_ipaddr ( &nic->dns[1] ) );
-	nic->subnet_mask_prefix = route6->prefix_len;
-	DBG ( "iBFT NIC[%d] subnet = /%d\n",
-	      nic->header.index, nic->subnet_mask_prefix );
+       /* Extract values from configuration settings */
+       ibft_set_ip6addr ( &nic->ip_address, route6->address );
+       DBG ( "iBFT NIC IP = %s\n", ibft_ipaddr ( &nic->ip_address ) );
+       ibft_set_ip6addr ( &nic->gateway, *router );
+       DBG ( "iBFT NIC gateway = %s\n", ibft_ipaddr ( &nic->gateway ) );
+       ibft_set_ip6addr_setting ( NULL, &nic->dns[0], &dns6_setting,
+                                  ( sizeof ( nic->dns ) /
+                                    sizeof ( nic->dns[0] ) ) );
+       DBG ( "iBFT NIC DNS = %s", ibft_ipaddr ( &nic->dns[0] ) );
+       DBG ( ", %s\n", ibft_ipaddr ( &nic->dns[1] ) );
+       nic->subnet_mask_prefix = route6->prefix_len;
+       DBG ( "iBFT NIC subnet = /%d\n", nic->subnet_mask_prefix );
 
-	return route6->netdev;
+       return route6->netdev;
 }
 
 /**
@@ -431,7 +419,6 @@ static int ibft_fill_nic ( struct ibft_nic *nic,
 	} else
 		return -EPROTONOSUPPORT;
 
-
 	/* Fill in common header */
 	nic->header.structure_id = IBFT_STRUCTURE_ID_NIC;
 	nic->header.version = 1;
@@ -440,10 +427,10 @@ static int ibft_fill_nic ( struct ibft_nic *nic,
 	nic->header.flags = ( IBFT_FL_NIC_BLOCK_VALID |
 			      IBFT_FL_NIC_FIRMWARE_BOOT_SELECTED );
 
-	if (sin_target->sin_family == AF_INET)
-		netdev = ibft_fill_nic_ipv4( nic, route4 );
-	else
-		netdev = ibft_fill_nic_ipv6( nic, route6, router6 );
+       if (sin_target->sin_family == AF_INET)
+               netdev = ibft_fill_nic_ipv4( nic, sin_target );
+       else
+               netdev = ibft_fill_nic_ipv6( nic, sin6_target );
 
 	/* Extract values from net-device configuration */
 	nic->vlan = cpu_to_le16 ( vlan_tag ( netdev ) );

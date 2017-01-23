@@ -306,21 +306,15 @@ int ipv6_ll_route ( struct net_device *netdev ) {
 		return rc;
 	}
 
-        /* Fetch gateway, if defined */
-        len = fetch_setting ( settings, &gateway6_setting, &origin, NULL,
-                              gateway6, sizeof ( *gateway6 ) );
-        if ( ( len != sizeof ( *gateway6 ) ) || ( origin != settings ) )
-                gateway6 = NULL;
-
 	/* Check if miniroute already exists */
 	miniroute = ipv6_miniroute ( netdev, &address );
 	if ( miniroute )
 		return 0;
 
 	/* Create link-local address for this network device */
-	miniroute = ipv6_add_miniroute ( netdev, &address, prefix_len,
-					 gateway6 );
-	if ( ! miniroute )
+	rc = ipv6_add_miniroute ( netdev, &address, prefix_len,
+					 NULL );
+	if ( ! rc )
 		return -ENOMEM;
 
 	return 0;
@@ -1386,41 +1380,7 @@ static int ipv6_create_all_routes ( void ) {
 
 /** IPv6 settings applicator */
 struct settings_applicator ipv6_settings_applicator __settings_applicator = {
-	.apply = ipv6_create_all_routes,
-};
-
-/**
- * Update IPv6 routing table based on configured settings
- *
- * @ret rc		Return status code
- */
-static int ipv6_update_routes ( void ) {
-	struct net_device *netdev;
-	struct settings *settings;
-	struct in6_addr address;
-	int rc;
-
-	/* Update configured routes for each configured network device */
-	for_each_netdev ( netdev ) {
-		settings = netdev_settings ( netdev );
-		/* Get IPv6 address */
-		rc = fetch_ipv6_setting ( settings, &ip6_setting, &address );
-		if (rc < 0) {
-			DBGC( netdev, "IPv6 %s failed "
-			      "to retrieve address: %s\n",
-			      netdev->name, strerror(rc));
-			continue;
-		}
-		/* Update address */
-		ipv6_set_address( netdev, &address );
-	}
-
-	return 0;
-}
-
-/** IPv6 settings applicator */
-struct settings_applicator ipv6_settings_applicator __settings_applicator = {
-	.apply = ipv6_update_routes,
+        .apply = ipv6_create_all_routes,
 };
 
 /* Drag in objects via ipv6_protocol */

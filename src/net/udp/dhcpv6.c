@@ -1026,12 +1026,12 @@ int start_dhcpv6 ( struct interface *job, struct net_device *netdev,
 }
 
 /** IPv6 address setting */
-const struct setting ip6_setting __setting ( SETTING_IP_EXTRA, ip6 ) = {
+const struct setting ip6local_setting __setting ( SETTING_IP6, ip6 ) = {
 	.name = "ip6",
 	.description = "IPv6 address",
 	.tag = DHCPV6_IAADDR,
 	.type = &setting_type_ipv6,
-	.scope = &ipv6_scope,
+	.scope = &dhcpv6_scope,
 };
 
 /** Boot filename setting */
@@ -1045,6 +1045,7 @@ const struct setting filename6_setting __setting ( SETTING_BOOT, filename ) = {
 
 /** DNS search list setting */
 const struct setting dnssl6_setting __setting ( SETTING_IP_EXTRA, dnssl ) = {
+const struct setting dns6_setting __setting ( SETTING_IP6_EXTRA, dnssl ) = {
 	.name = "dnssl",
 	.description = "DNS search list",
 	.tag = DHCPV6_DOMAIN_LIST,
