@@ -706,6 +706,24 @@ static int ndp_fetch ( struct settings *settings,
 		option = ( ( ( void * ) ndpset->options ) + offset );
 		option_len = ( option->header.blocks * NDP_OPTION_BLKSZ );
 
+               /* Looks for prefix if the router address is requested */
+               if ( type == NDP_OPT_RA_ADDR &&
+                    option->header.type == NDP_OPT_PREFIX ) {
+                       struct in6_addr prefix;
+                       struct ipv6_miniroute *route6;
+
+                       memcpy( &prefix, ( ( ( void * ) option ) + offset ),
+                               sizeof(prefix) );
+
+                       route6 = ipv6_miniroute( netdev, &prefix );
+                       if (route6) {
+                               if ( len > sizeof(struct in6_addr) )
+                                       len = sizeof(struct in6_addr);
+                               memcpy( data, &route6->router, len );
+                               return sizeof(struct in6_addr);
+                       }
+                }
+
 		/* Skip options that do not match this tag */
 		if ( option->header.type != tag_type )
 			continue;
@@ -1017,6 +1035,17 @@ static int ndp_register_settings ( struct net_device *netdev,
  err_alloc:
 	return rc;
 }
+
+/** Prefix setting */
+const struct setting ndp_gateway6_setting __setting ( SETTING_IP_EXTRA, gateway6) = {
+	.name = "gateway6",
+	.description = "IPv6 default gateway",
+	.tag = NDP_TAG ( NDP_OPT_RA_ADDR,
+			 offsetof ( struct ndp_prefix_information_option,
+				    prefix ) ),
+	.type = &setting_type_ipv6,
+	.scope = &ndp_settings_scope,
+};
 
 /** Prefix setting */
 const struct setting ndp_prefix6_setting __setting ( SETTING_IP_EXTRA, prefix6) = {
