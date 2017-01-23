@@ -311,5 +311,7 @@ extern int format_ipv6_setting ( const struct setting_type *type,
 extern int ipv6_ll_route ( struct net_device *netdev );
 struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
 					 struct in6_addr *address );
+extern struct ipv6_miniroute * ipv6_route ( unsigned int scope_id,
+					    struct in6_addr **dest );
 
 #endif /* _IPXE_IPV6_H */
