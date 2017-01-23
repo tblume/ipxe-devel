@@ -306,6 +306,12 @@ int ipv6_ll_route ( struct net_device *netdev ) {
 		return rc;
 	}
 
+        /* Fetch gateway, if defined */
+        len = fetch_setting ( settings, &gateway6_setting, &origin, NULL,
+                              gateway6, sizeof ( *gateway6 ) );
+        if ( ( len != sizeof ( *gateway6 ) ) || ( origin != settings ) )
+                gateway6 = NULL;
+
 	/* Check if miniroute already exists */
 	miniroute = ipv6_miniroute ( netdev, &address );
 	if ( miniroute )
@@ -313,7 +319,7 @@ int ipv6_ll_route ( struct net_device *netdev ) {
 
 	/* Create link-local address for this network device */
 	miniroute = ipv6_add_miniroute ( netdev, &address, prefix_len,
-					 IPV6_HAS_ADDRESS );
+					 gateway6 );
 	if ( ! miniroute )
 		return -ENOMEM;
 
