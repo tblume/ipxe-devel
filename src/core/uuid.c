@@ -34,6 +34,8 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
  *
  */
 
+const union uuid null_uuid;
+
 /**
  * Convert UUID to printable string
  *

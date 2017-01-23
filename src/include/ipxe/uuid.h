@@ -49,4 +49,6 @@ static inline void uuid_mangle ( union uuid *uuid ) {
 
 extern const char * uuid_ntoa ( const union uuid *uuid );
 
+extern const union uuid null_uuid;
+
 #endif /* _IPXE_UUID_H */

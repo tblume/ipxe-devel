@@ -508,7 +508,11 @@ struct dhcpv6_session {
 	/** Start time (in ticks) */
 	unsigned long start;
 	/** Client DUID */
-	struct dhcpv6_duid_uuid client_duid;
+	union {
+		struct dhcpv6_duid_uuid uuid;
+		struct dhcpv6_duid_eth_ll ll;
+	} client_duid;
+	int client_duid_len;
 	/** Server DUID, if known */
 	void *server_duid;
 	/** Server DUID length */
@@ -627,7 +631,7 @@ static int dhcpv6_tx ( struct dhcpv6_session *dhcpv6 ) {
 
 	/* Calculate lengths */
 	client_id_len = ( sizeof ( *client_id ) +
-			  sizeof ( dhcpv6->client_duid ) );
+			  dhcpv6->client_duid_len );
 	server_id_len = ( dhcpv6->server_duid ? ( sizeof ( *server_id ) +
 						  dhcpv6->server_duid_len ) :0);
 	if ( dhcpv6->state->flags & DHCPV6_TX_IA_NA ) {
@@ -662,7 +666,7 @@ static int dhcpv6_tx ( struct dhcpv6_session *dhcpv6 ) {
 	client_id->header.len = htons ( client_id_len -
 					sizeof ( client_id->header ) );
 	memcpy ( client_id->duid, &dhcpv6->client_duid,
-		 sizeof ( dhcpv6->client_duid ) );
+		 dhcpv6->client_duid_len );
 
 	/* Construct server identifier, if applicable */
 	if ( server_id_len ) {
@@ -793,7 +797,7 @@ static int dhcpv6_rx ( struct dhcpv6_session *dhcpv6,
 	/* Verify client identifier */
 	if ( ( rc = dhcpv6_check_duid ( &options, DHCPV6_CLIENT_ID,
 					&dhcpv6->client_duid,
-					sizeof ( dhcpv6->client_duid ) ) ) !=0){
+					dhcpv6->client_duid_len ) ) !=0){
 		DBGC ( dhcpv6, "DHCPv6 %s received %s without correct client "
 		       "ID: %s\n", dhcpv6->netdev->name,
 		       dhcpv6_type_name ( dhcphdr->type ), strerror ( rc ) );
@@ -959,15 +963,25 @@ int start_dhcpv6 ( struct interface *job, struct net_device *netdev,
 	addresses.server.sin6.sin6_port = htons ( DHCPV6_SERVER_PORT );
 
 	/* Construct client DUID from system UUID */
-	dhcpv6->client_duid.type = htons ( DHCPV6_DUID_UUID );
+	dhcpv6->client_duid_len = sizeof(struct dhcpv6_duid_uuid);
+	dhcpv6->client_duid.uuid.type = htons ( DHCPV6_DUID_UUID );
 	if ( ( len = fetch_uuid_setting ( NULL, &uuid_setting,
-					  &dhcpv6->client_duid.uuid ) ) < 0 ) {
+					  &dhcpv6->client_duid.uuid.uuid ) ) <= 0 ) {
 		rc = len;
 		DBGC ( dhcpv6, "DHCPv6 %s could not create DUID-UUID: %s\n",
 		       dhcpv6->netdev->name, strerror ( rc ) );
 		goto err_client_duid;
 	}
-
+	if (!memcmp( &dhcpv6->client_duid.uuid.uuid, &null_uuid,
+		     sizeof(null_uuid) )) {
+		DBGC ( dhcpv6, "DHCPv6 %s empty DUID-UUID, using DUID-LL\n",
+		       dhcpv6->netdev->name );
+		dhcpv6->client_duid.ll.type = htons ( DHCPV6_DUID_LL );
+		dhcpv6->client_duid.ll.hw_type = ll_protocol->ll_proto;
+		memcpy( dhcpv6->client_duid.ll.ll_addr, netdev->ll_addr,
+			ll_protocol->ll_addr_len );
+		dhcpv6->client_duid_len = sizeof(struct dhcpv6_duid_eth_ll);
+	}
 	/* Construct IAID from link-layer address */
 	dhcpv6->iaid = crc32_le ( 0, netdev->ll_addr, ll_protocol->ll_addr_len);
 	DBGC ( dhcpv6, "DHCPv6 %s has XID %02x%02x%02x\n", dhcpv6->netdev->name,

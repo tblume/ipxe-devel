@@ -11,6 +11,7 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 
 #include <stdint.h>
 #include <ipxe/in.h>
+#include <ipxe/if_ether.h>
 #include <ipxe/uuid.h>
 
 /** DHCPv6 server port */
@@ -32,6 +33,16 @@ struct dhcpv6_option {
 	uint8_t data[0];
 } __attribute__ (( packed ));
 
+/** DHCP unique identifier based on Ethernet Link-layer address (DUID-LL) */
+struct dhcpv6_duid_eth_ll {
+	/** Type */
+	uint16_t type;
+	/** Hardware type: Ethernet */
+	uint16_t hw_type;
+	/** Ethernet link-layer address */
+	uint8_t ll_addr[ETH_ALEN];
+} __attribute__ (( packed ));
+
 /** DHCP unique identifier based on UUID (DUID-UUID) */
 struct dhcpv6_duid_uuid {
 	/** Type */
@@ -40,6 +51,8 @@ struct dhcpv6_duid_uuid {
 	union uuid uuid;
 } __attribute__ (( packed ));
 
+/** DHCP unique identifier based on link-layer address (DUID-LL) */
+#define DHCPV6_DUID_LL 3
 /** DHCP unique identifier based on UUID (DUID-UUID) */
 #define DHCPV6_DUID_UUID 4
 
