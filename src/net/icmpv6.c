@@ -99,6 +99,93 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 
 struct icmp_echo_protocol icmpv6_echo_protocol __icmp_echo_protocol;
 
+#define EHOSTUNREACH_NO_ROUTE \
+    __einfo_error ( EINFO_EHOSTUNREACH_NO_ROUTE )
+#define EINFO_EHOSTUNREACH_NO_ROUTE \
+    __einfo_uniqify ( EINFO_EHOSTUNREACH, 0x01, \
+		      "no route to destination" )
+#define EHOSTUNREACH_COMM_INHIBITED \
+    __einfo_error ( EINFO_EHOSTUNREACH_COMM_INHIBITED )
+#define EINFO_EHOSTUNREACH_COMM_INHIBITED \
+    __einfo_uniqify ( EINFO_EHOSTUNREACH, 0x02, \
+		      "communication inhibited" )
+#define EHOSTUNREACH_OUT_OF_SCOPE \
+    __einfo_error ( EINFO_EHOSTUNREACH_OUT_OF_SCOPE )
+#define EINFO_EHOSTUNREACH_OUT_OF_SCOPE \
+    __einfo_uniqify ( EINFO_EHOSTUNREACH, 0x03, \
+		      "out of source address scope" )
+#define EHOSTUNREACH_ADDR_UNREACH \
+    __einfo_error ( EINFO_EHOSTUNREACH_ADDR_UNREACH )
+#define EINFO_EHOSTUNREACH_ADDR_UNREACH \
+    __einfo_uniqify ( EINFO_EHOSTUNREACH, 0x04, \
+		      "address unreachable" )
+#define EHOSTUNREACH_PORT_UNREACH \
+    __einfo_error ( EINFO_EHOSTUNREACH_PORT_UNREACH )
+#define EINFO_EHOSTUNREACH_PORT_UNREACH \
+    __einfo_uniqify ( EINFO_EHOSTUNREACH, 0x05, \
+		      "port unreachable" )
+#define EHOSTUNREACH_ADDR_POLICY \
+    __einfo_error ( EINFO_EHOSTUNREACH_ADDR_POLICY )
+#define EINFO_EHOSTUNREACH_ADDR_POLICY \
+    __einfo_uniqify ( EINFO_EHOSTUNREACH, 0x06, \
+		      "source address failed policy" )
+#define EHOSTUNREACH_ROUTE_RJT \
+    __einfo_error ( EINFO_EHOSTUNREACH_ROUTE_RJT )
+#define EINFO_EHOSTUNREACH_ROUTE_RJT \
+    __einfo_uniqify ( EINFO_EHOSTUNREACH, 0x07, \
+		      "route rejected" )
+
+#define EUNREACH_STATUS( code )					\
+    EUNIQ ( EINFO_EHOSTUNREACH, ( code ),			\
+	    EHOSTUNREACH_NO_ROUTE, EHOSTUNREACH_COMM_INHIBITED,	\
+	    EHOSTUNREACH_OUT_OF_SCOPE, EHOSTUNREACH_ADDR_UNREACH,	\
+	    EHOSTUNREACH_PORT_UNREACH, EHOSTUNREACH_ADDR_POLICY,	\
+	    EHOSTUNREACH_ROUTE_RJT )
+
+#define EPROTO_PACKET \
+    __einfo_error ( EINFO_EPROTO_PACKET )
+#define EINFO_EPROTO_PACKET \
+    __einfo_uniqify ( EINFO_EPROTO, 0x01, \
+		       "packet too big" )
+
+#define EPROTO_STATUS( code ) \
+	EUNIQ ( EINFO_EPROTO, ( code ), EPROTO_PACKET )
+
+#define ETIME_HOP_EXCEEDED \
+    __einfo_error ( EINFO_ETIME_HOP_EXCEEDED )
+#define EINFO_ETIME_HOP_EXCEEDED \
+    __einfo_uniqify ( EINFO_ETIME, 0x01, \
+		      "hop limit exceeded" )
+#define ETIME_REASSEMBLY_EXCEEDED \
+    __einfo_error ( EINFO_ETIME_REASSEMBLY_EXCEEDED )
+#define EINFO_ETIME_REASSEMBLY_EXCEEDED \
+    __einfo_uniqify ( EINFO_ETIME, 0x02, \
+		       "reassembly time exceeded" )
+
+#define ETIME_STATUS( code )					\
+    EUNIQ ( EINFO_ETIME, ( code ),				\
+	    ETIME_HOP_EXCEEDED, ETIME_REASSEMBLY_EXCEEDED )
+
+#define EINVAL_HEADER \
+    __einfo_error ( EINFO_EINVAL_HEADER )
+#define EINFO_EINVAL_HEADER \
+    __einfo_uniqify( EINFO_EINVAL, 0x01, \
+		     "invalid header field" )
+#define EINVAL_NEXT_TYPE \
+    __einfo_error ( EINFO_EINVAL_NEXT_TYPE )
+#define EINFO_EINVAL_NEXT_TYPE \
+    __einfo_uniqify( EINFO_EINVAL, 0x02, \
+		     "next header type" )
+#define EINVAL_IPV6_OPTION \
+    __einfo_error ( EINFO_EINVAL_IPV6_OPTION )
+#define EINFO_EINVAL_IPV6_OPTION \
+    __einfo_uniqify( EINFO_EINVAL, 0x03, \
+		      "invalid IPv6 option" )
+
+#define EINVAL_STATUS( code )					\
+    EUNIQ ( EINFO_EINVAL, ( code ),				\
+	    EINVAL_HEADER, EINVAL_NEXT_TYPE, EINVAL_IPV6_OPTION )
+
 /**
  * Process received ICMPv6 echo request packet
  *
