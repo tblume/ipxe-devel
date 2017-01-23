@@ -284,6 +284,42 @@ int ipv6_add_miniroute ( struct net_device *netdev, struct in6_addr *address,
 	return 0;
 }
 
+ /**
+ * Add IPv6 link-local routing table entry
+ *
+ * @v netdev		Network device
+ * @ret miniroute	Routing table entry, or NULL on failure
+ */
+int ipv6_ll_route ( struct net_device *netdev ) {
+	struct ipv6_miniroute *miniroute;
+	struct in6_addr address;
+	int prefix_len;
+	int rc;
+
+	/* Construct link-local address from EUI-64 as per RFC 2464 */
+	memset ( &address, 0, sizeof ( address ) );
+	prefix_len = ipv6_link_local ( &address, netdev );
+	if ( prefix_len < 0 ) {
+		rc = prefix_len;
+		DBGC ( netdev, "IPv6 %s could not construct link-local "
+		       "address: %s\n", netdev->name, strerror ( rc ) );
+		return rc;
+	}
+
+	/* Check if miniroute already exists */
+	miniroute = ipv6_miniroute ( netdev, &address );
+	if ( miniroute )
+		return 0;
+
+	/* Create link-local address for this network device */
+	miniroute = ipv6_add_miniroute ( netdev, &address, prefix_len,
+					 IPV6_HAS_ADDRESS );
+	if ( ! miniroute )
+		return -ENOMEM;
+
+	return 0;
+}
+
 /**
  * Delete IPv6 minirouting table entry
  *
