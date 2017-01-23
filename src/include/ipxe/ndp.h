@@ -26,6 +26,9 @@ struct ndp_option_header {
 /** NDP option block size */
 #define NDP_OPTION_BLKSZ 8U
 
+/** NDP RA gateway address */
+#define NDP_OPT_RA_ADDR 0
+
 /** NDP source link-layer address option */
 #define NDP_OPT_LL_SOURCE 1
 

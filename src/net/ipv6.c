@@ -189,8 +189,8 @@ static unsigned int ipv6_match_len ( struct ipv6_miniroute *miniroute,
  * @v address		IPv6 address
  * @ret miniroute	Routing table entry, or NULL if not found
  */
-static struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
-						struct in6_addr *address ) {
+struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
+					 struct in6_addr *address ) {
 	struct ipv6_miniroute *miniroute;
 	unsigned int match_len;
 
@@ -1381,6 +1381,40 @@ static int ipv6_create_all_routes ( void ) {
 /** IPv6 settings applicator */
 struct settings_applicator ipv6_settings_applicator __settings_applicator = {
 	.apply = ipv6_create_all_routes,
+};
+
+/**
+ * Update IPv6 routing table based on configured settings
+ *
+ * @ret rc		Return status code
+ */
+static int ipv6_update_routes ( void ) {
+	struct net_device *netdev;
+	struct settings *settings;
+	struct in6_addr address;
+	int rc;
+
+	/* Update configured routes for each configured network device */
+	for_each_netdev ( netdev ) {
+		settings = netdev_settings ( netdev );
+		/* Get IPv6 address */
+		rc = fetch_ipv6_setting ( settings, &ip6_setting, &address );
+		if (rc < 0) {
+			DBGC( netdev, "IPv6 %s failed "
+			      "to retrieve address: %s\n",
+			      netdev->name, strerror(rc));
+			continue;
+		}
+		/* Update address */
+		ipv6_set_address( netdev, &address );
+	}
+
+	return 0;
+}
+
+/** IPv6 settings applicator */
+struct settings_applicator ipv6_settings_applicator __settings_applicator = {
+	.apply = ipv6_update_routes,
 };
 
 /* Drag in objects via ipv6_protocol */

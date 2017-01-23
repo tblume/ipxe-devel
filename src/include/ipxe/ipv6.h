@@ -308,5 +308,8 @@ extern int parse_ipv6_setting ( const struct setting_type *type,
 extern int format_ipv6_setting ( const struct setting_type *type,
 				 const void *raw, size_t raw_len, char *buf,
 				 size_t len );
+extern int ipv6_ll_route ( struct net_device *netdev );
+struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
+					 struct in6_addr *address );
 
 #endif /* _IPXE_IPV6_H */
