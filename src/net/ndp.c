@@ -1018,6 +1018,17 @@ static int ndp_register_settings ( struct net_device *netdev,
 	return rc;
 }
 
+/** Prefix setting */
+const struct setting ndp_prefix6_setting __setting ( SETTING_IP_EXTRA, prefix6) = {
+	.name = "prefix6",
+	.description = "IPv6 prefix",
+	.tag = NDP_TAG ( NDP_OPT_PREFIX,
+			 offsetof ( struct ndp_prefix_information_option,
+				    prefix ) ),
+	.type = &setting_type_ipv6,
+	.scope = &ndp_settings_scope,
+};
+
 /** DNS server setting */
 const struct setting ndp_dns6_setting __setting ( SETTING_IP6_EXTRA, dns6 ) = {
 	.name = "dns6",
@@ -1226,11 +1237,17 @@ static struct interface_descriptor ipv6conf_dhcp_desc =
  */
 int start_ipv6conf ( struct interface *job, struct net_device *netdev ) {
 	struct ipv6conf *ipv6conf;
+	int rc;
 
 	/* Allocate and initialise structure */
 	ipv6conf = zalloc ( sizeof ( *ipv6conf ) );
 	if ( ! ipv6conf )
 		return -ENOMEM;
+
+	rc = ipv6_ll_route( netdev );
+	if (rc)
+		return rc;
+
 	ref_init ( &ipv6conf->refcnt, ipv6conf_free );
 	intf_init ( &ipv6conf->job, &ipv6conf_job_desc, &ipv6conf->refcnt );
 	intf_init ( &ipv6conf->dhcp, &ipv6conf_dhcp_desc, &ipv6conf->refcnt );
