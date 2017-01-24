@@ -35,8 +35,10 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
  */
 
 #define	NET_PROTO_IPV4		/* IPv4 protocol */
-#undef	NET_PROTO_IPV6		/* IPv6 protocol */
-#undef	NET_PROTO_FCOE		/* Fibre Channel over Ethernet protocol */
+#define	NET_PROTO_IPV6		/* IPv6 protocol */
+//#undef	NET_PROTO_IPV6		/* IPv6 protocol */
+#define	NET_PROTO_FCOE		/* Fibre Channel over Ethernet protocol */
+//#undef	NET_PROTO_FCOE		/* Fibre Channel over Ethernet protocol */
 #define	NET_PROTO_STP		/* Spanning Tree protocol */
 #define	NET_PROTO_LACP		/* Link Aggregation control protocol */
 
@@ -65,9 +67,11 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
  *
  */
 
+#define	SANBOOT_PROTO_ISCSI	/* iSCSI protocol */
 //#undef	SANBOOT_PROTO_ISCSI	/* iSCSI protocol */
 //#undef	SANBOOT_PROTO_AOE	/* AoE protocol */
 //#undef	SANBOOT_PROTO_IB_SRP	/* Infiniband SCSI RDMA protocol */
+#define	SANBOOT_PROTO_FCP	/* Fibre Channel protocol */
 //#undef	SANBOOT_PROTO_FCP	/* Fibre Channel protocol */
 //#undef	SANBOOT_PROTO_HTTP	/* HTTP SAN protocol */
 
@@ -139,15 +143,16 @@ FILE_LICENCE ( GPL2_OR_LATER_OR_UBDL );
 //#define LOTEST_CMD		/* Loopback testing commands */
 //#define VLAN_CMD		/* VLAN commands */
 //#define PXE_CMD		/* PXE commands */
-//#define REBOOT_CMD		/* Reboot command */
+#define REBOOT_CMD		/* Reboot command */
 //#define POWEROFF_CMD		/* Power off command */
 //#define IMAGE_TRUST_CMD	/* Image trust management commands */
 //#define PCI_CMD		/* PCI commands */
 //#define PARAM_CMD		/* Form parameter commands */
 //#define NEIGHBOUR_CMD		/* Neighbour management commands */
 //#define PING_CMD		/* Ping command */
+#define PING_CMD		/* Ping command */
 //#define CONSOLE_CMD		/* Console command */
-//#define IPSTAT_CMD		/* IP statistics commands */
+#define IPSTAT_CMD		/* IP statistics commands */
 //#define PROFSTAT_CMD		/* Profiling commands */
 //#define NTP_CMD		/* NTP commands */
 //#define CERT_CMD		/* Certificate management commands */

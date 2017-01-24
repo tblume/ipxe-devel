@@ -1044,7 +1044,7 @@ const struct setting filename6_setting __setting ( SETTING_BOOT, filename ) = {
 };
 
 /** DNS search list setting */
-const struct setting dnssl6_setting __setting ( SETTING_IP_EXTRA, dnssl ) = {
+/*
 const struct setting dns6_setting __setting ( SETTING_IP6_EXTRA, dnssl ) = {
 	.name = "dnssl",
 	.description = "DNS search list",
@@ -1052,3 +1052,4 @@ const struct setting dns6_setting __setting ( SETTING_IP6_EXTRA, dnssl ) = {
 	.type = &setting_type_dnssl,
 	.scope = &dhcpv6_scope,
 };
+*/
