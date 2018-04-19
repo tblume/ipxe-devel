@@ -526,6 +526,9 @@ static inline const char * netdev_addr ( struct net_device *netdev ) {
 #define for_each_netdev( netdev ) \
 	list_for_each_entry ( (netdev), &net_devices, list )
 
+#define list_next_netdev( netdev ) \
+	list_next_entry( (netdev), &net_devices, list )
+
 /** There exist some network devices
  *
  * @ret existence	Existence of network devices

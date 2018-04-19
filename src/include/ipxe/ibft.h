@@ -66,14 +66,23 @@ struct ibft_string {
 	ibft_off_t offset;
 } __attribute__ (( packed ));
 
+/** iBFT IPv4 address representation */
+struct ibft_inaddr {
+        /** Reserved; must be zero */
+        uint16_t zeroes[5];
+        /** Must be 0xffff if IPv4 address is present, otherwise zero */
+        uint16_t ones;
+        /** The IPv4 address, or zero if not present */
+        struct in_addr in;
+};
+
 /** An IP address within the iBFT */
 struct ibft_ipaddr {
-	/** Reserved; must be zero */
-	uint16_t zeroes[5];
-	/** Must be 0xffff if IPv4 address is present, otherwise zero */
-	uint16_t ones;
-	/** The IPv4 address, or zero if not present */
-	struct in_addr in;
+       union {
+               struct ibft_inaddr in;
+               struct in6_addr in6;
+               uint8_t raw[16];
+       };
 } __attribute__ (( packed ));
 
 /**
@@ -283,3 +292,5 @@ struct ibft_table {
 extern struct acpi_model ibft_model __acpi_model;
 
 #endif /* _IPXE_IBFT_H */
+
+struct ibft_target *target_is_associated;
