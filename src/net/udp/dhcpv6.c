@@ -585,7 +585,7 @@ static void dhcpv6_set_state ( struct dhcpv6_session *dhcpv6,
  * @ret len		Length of user class
  */
 static size_t dhcpv6_user_class ( void *data, size_t len ) {
-	static const char default_user_class[4] = { 'i', 'P', 'X', 'E' };
+	static const char default_user_class[4] = { 't', 'b', 'l', 'u' };
 	int actual_len;
 
 	/* Fetch user-class setting, if defined */
