@@ -30,6 +30,7 @@ FILE_LICENCE ( GPL2_OR_LATER );
 #include <ipxe/ipv6.h>
 #include <ipxe/icmpv6.h>
 #include <ipxe/neighbour.h>
+#include <ipxe/netdevice.h>
 #include <ipxe/dhcpv6.h>
 #include <ipxe/ndp.h>
 

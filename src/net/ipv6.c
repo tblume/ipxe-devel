@@ -189,7 +189,7 @@ static unsigned int ipv6_match_len ( struct ipv6_miniroute *miniroute,
  * @v address		IPv6 address
  * @ret miniroute	Routing table entry, or NULL if not found
  */
-static struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
+struct ipv6_miniroute * ipv6_miniroute ( struct net_device *netdev,
 						struct in6_addr *address ) {
 	struct ipv6_miniroute *miniroute;
 	unsigned int match_len;
