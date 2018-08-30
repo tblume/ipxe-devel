@@ -821,6 +821,11 @@ static int tg3_init_one(struct pci_device *pdev)
 		goto err_out_iounmap;
 	}
 
+	//tblume enabling this card make ipxe hang
+        if (pdev->id->name == "14e4-1645") {
+               DBGC (&pdev->dev, "tblume: warning device is \"%s\" disabling \n", pdev->id->name);
+               return 0;
+	}
 	/* Call tg3_setup_phy() to start autoneg process, which saves time
 	 * over starting autoneg in tg3_open();
 	 */

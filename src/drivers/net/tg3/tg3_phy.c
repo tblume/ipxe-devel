@@ -2368,6 +2368,9 @@ static int tg3_setup_copper_phy(struct tg3 *tp, int force_reset)
 		}
 	}
 
+	//tblume hier
+	DBGC(tp->dev, "tblume: in tg3_setup_copper_phy and still running before for loops\n");
+
 	bmsr = 0;
 	for (i = 0; i < 100; i++) {
 		tg3_readphy(tp, MII_BMSR, &bmsr);
@@ -2523,12 +2526,22 @@ int tg3_setup_phy(struct tg3 *tp, int force_reset)
 	u32 val;
 	int err;
 
+	//tblume hier
+	DBGC(tp->dev, "tblume: hw matching with: %x:%x\n", tp->subsystem_vendor, tp->subsystem_device);
+	if (tp->subsystem_vendor == 0x10b7 || tp->subsystem_device == 0x1006)
+        	return -ENOTSUP;
+
 	if (tp->phy_flags & TG3_PHYFLG_PHY_SERDES)
 		err = tg3_setup_fiber_phy(tp, force_reset);
 	else if (tp->phy_flags & TG3_PHYFLG_MII_SERDES)
 		err = tg3_setup_fiber_mii_phy(tp, force_reset);
 	else
 		err = tg3_setup_copper_phy(tp, force_reset);
+
+	//tblume hier
+	DBGC(tp->dev, "tblume: hw matching with: %x:%x\n", tp->subsystem_vendor, tp->subsystem_device);
+	if (tp->subsystem_vendor == 0x10b7 || tp->subsystem_device == 0x1006)
+        	return -ENOTSUP;
 
 	val = (2 << TX_LENGTHS_IPG_CRS_SHIFT) |
 	      (6 << TX_LENGTHS_IPG_SHIFT);
